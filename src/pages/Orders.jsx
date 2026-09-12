@@ -1,0 +1,13 @@
+import { ClipboardList, PackageCheck } from 'lucide-react';
+
+export default function Orders({ orders }) {
+  const totalUnits = orders.reduce((total, order) => total + order.quantity, 0);
+  const totalValue = orders.reduce((total, order) => total + order.quantity * order.unitPrice, 0);
+  const pending = orders.filter(order => order.status === 'Pending').length;
+
+  return <section className="view active-view orders-view">
+    <div className="page-heading compact"><div><p className="eyebrow">Purchasing workspace</p><h1>Orders</h1><p className="lede">Track every reorder created from your inventory recommendations.</p></div><div className="orders-count"><ClipboardList size={15} /> {orders.length} total orders</div></div>
+    <div className="orders-summary"><article className="panel"><small>Total orders</small><strong>{orders.length}</strong><span>purchase orders created</span></article><article className="panel"><small>Units ordered</small><strong>{totalUnits.toLocaleString()}</strong><span>across all products</span></article><article className="panel"><small>Order value</small><strong>${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong><span>estimated purchasing spend</span></article><article className="panel"><small>Pending orders</small><strong className="amber-text">{pending}</strong><span>awaiting fulfillment</span></article></div>
+    <article className="panel orders-table-panel"><div className="panel-header"><div><p className="eyebrow">Order history</p><h2>All purchase orders</h2></div><span className="subtle">Persisted in inventory database</span></div>{orders.length === 0 ? <div className="orders-empty"><PackageCheck size={28} /><h3>No purchase orders yet</h3><p>Use a Reorder action from Stockout risk to create your first order.</p></div> : <div className="orders-table-scroll"><div className="orders-table-head"><span>Order</span><span>Product</span><span>Supplier</span><span>Quantity</span><span>Value</span><span>Delivery</span><span>Status</span></div>{orders.map(order => <div className="orders-table-row" key={order.id}><div><strong>PO-{String(order.id).padStart(4, '0')}</strong><small>{new Date(order.createdAt).toLocaleDateString()}</small></div><div><strong>{order.productName}</strong><small>{order.productSku}</small></div><span>{order.supplier}</span><b>{order.quantity.toLocaleString()}</b><span>${(order.quantity * order.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span><span>{order.deliveryDate}</span><span className="order-status"><i />{order.status}</span></div>)}</div>}</article>
+  </section>;
+}

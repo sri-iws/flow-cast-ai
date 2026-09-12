@@ -1,0 +1,3 @@
+import { Activity, AlertTriangle, ChartNoAxesCombined, CircleDollarSign } from 'lucide-react';
+const icons = [CircleDollarSign, AlertTriangle, Activity, ChartNoAxesCombined];
+export default function MetricCard({ label, value, unit, change, tone, index }) { const Icon = icons[index]; return <article className={`metric-card accent-${tone}`}><div className="metric-top"><span>{label}</span><span className="metric-icon"><Icon size={14} /></span></div><strong>{value}<span className="unit">{unit}</span></strong><div className={`metric-foot ${tone === 'coral' ? 'negative' : 'positive'}`}>{change} <span>vs last period</span></div><div className={`sparkline ${tone}`}><i /><i /><i /><i /><i /><i /><i /><i /><i /></div></article>; }
