@@ -1,23 +1,25 @@
-FROM node:22-alpine AS frontend-build
-
+FROM node:20-bullseye AS frontend-builder
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY index.html vite.config.js .
-COPY src ./src
-COPY styles.css theme.css app.js frontend.md ./
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
 RUN npm run build
 
 FROM python:3.12-slim
+WORKDIR /app
 
-WORKDIR /app/backend
-COPY backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-COPY backend ./
-COPY --from=frontend-build /app/dist ./frontend-dist
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLOW_CAST_FRONTEND_DIST=/app/dist \
+    PORT=8000
 
-ENV FLOW_CAST_DATABASE=/app/data/inventory.db
-RUN mkdir -p /app/data
+COPY --from=frontend-builder /app /app
 
-EXPOSE 8080
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+RUN python -m pip install --upgrade pip \
+    && pip install --no-cache-dir -r /app/backend/requirements.txt
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "cd /app/backend && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]

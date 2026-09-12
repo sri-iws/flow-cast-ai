@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "dev": "vite",
-    "start": "vite preview --host 0.0.0.0 --port 8080",
+    "start": "vite",
     "python-server": "cd backend && uvicorn main:app --reload --port 8000",
     "dev:all": "node scripts/start-dev.mjs"
   },
