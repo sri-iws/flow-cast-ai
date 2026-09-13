@@ -10,6 +10,7 @@ permissions:
   contents: read
 
 env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: flow-cast-ai
   APP_RUNNER_SERVICE_NAME: flow-cast-ai
