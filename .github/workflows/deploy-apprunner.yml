@@ -8,12 +8,14 @@ on:
 permissions:
   id-token: write
   contents: read
+  packages: write
 
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: flow-cast-ai
   APP_RUNNER_SERVICE_NAME: flow-cast-ai
   IMAGE_TAG: ${{ github.sha }}
+  GHCR_IMAGE_REPO: ghcr.io/${{ github.repository_owner }}/flow-cast-ai
 
 jobs:
   deploy:
@@ -33,6 +35,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Ensure ECR repository exists
         run: |
           aws ecr describe-repositories \
@@ -42,15 +51,21 @@ jobs:
             --repository-name "$ECR_REPOSITORY" \
             --region "$AWS_REGION"
 
-      - name: Build and push image to ECR
+      - name: Build and push image to ECR and GHCR
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
-          docker tag "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker build \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            -t "$GHCR_IMAGE_REPO:$IMAGE_TAG" \
+            -t "$GHCR_IMAGE_REPO:latest" \
+            .
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push "$GHCR_IMAGE_REPO:$IMAGE_TAG"
+          docker push "$GHCR_IMAGE_REPO:latest"
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Create or update App Runner service
