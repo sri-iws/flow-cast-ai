@@ -31,7 +31,7 @@ cd ..
 npm run dev:all
 ```
 
-Open `http://127.0.0.1:5173`. FastAPI documentation is available at `http://127.0.0.1:8000/docs`.
+Open `https://flow-cast-ai.onrender.com`. FastAPI documentation is available at `https://flow-cast-ai.onrender.com/docs`.
 
 You can also run the VS Code task `Flow Cast AI: start frontend and backend` from the Command Palette.
 
