@@ -1,6 +1,6 @@
 $ACCOUNT_ID = "811364788460"
 $REGION = "us-east-1"
-$ROLE_NAME = "GitHubActions-AppRunner-Deploy"
+$ROLE_NAME = "arn:aws:iam:: <811364788460>:role/GitHubActions-AppRunner-Deploy"
 
 @'
 {
