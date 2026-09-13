@@ -45,7 +45,5 @@ function shutdown(code = 0) {
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
-start('frontend', isWindows ? 'npm.cmd' : 'npm', ['run', 'dev', '--', '--host', '127.0.0.1'], root, '\x1b[36m');
-console.log('\nFlow Cast AI is starting locally: http://127.0.0.1:5173');
 console.log('API docs: https://flow-cast-ai.onrender.com/docs');
 console.log('Press Ctrl+C to stop both servers.');
