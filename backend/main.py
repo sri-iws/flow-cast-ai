@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from fastapi.staticfiles import StaticFiles
-from backend.database import create_order, get_orders, get_products, initialize_database
+from database import create_order, get_orders, get_products, initialize_database
 
 app = FastAPI(title="Flow Cast AI API", version="1.0.0")
 app.add_middleware(
