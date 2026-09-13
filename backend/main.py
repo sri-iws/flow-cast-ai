@@ -8,20 +8,44 @@ from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from fastapi.staticfiles import StaticFiles
-from database import create_order, get_orders, get_products, initialize_database
+from database import (
+    create_order,
+    create_user,
+    get_orders,
+    get_products,
+    get_user_by_email,
+    get_user_by_username,
+    hash_password,
+    initialize_database,
+    verify_password,
+)
 
 app = FastAPI(title="Flow Cast AI API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://main.du2fef2n0b3af.amplifyapp.com", "https://flow-cast-ai.onrender.com"],
+    allow_origins=[
+        "https://main.du2fef2n0b3af.amplifyapp.com",
+        "https://flow-cast-ai.onrender.com",
+        "http://localhost:5155",
+        "http://127.0.0.1:5155",
+    ],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
+    allow_credentials=True,
 )
 
 initialize_database()
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_, exc: RequestValidationError):
+    return JSONResponse(status_code=400, content={"detail": exc.errors()})
+
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 REQUIRED_UPLOAD_FIELDS = {"date", "product_id", "units_sold", "price", "inventory_level", "promotion"}
@@ -114,6 +138,67 @@ class PurchaseOrder(PurchaseOrderCreate):
     createdAt: str
 
 
+class RegisterUser(BaseModel):
+    fullName: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=4, max_length=200)
+    username: str = Field(min_length=3, max_length=40)
+    password: str = Field(min_length=8, max_length=128)
+    role: str = Field(default="manager")
+
+    @field_validator("fullName", "email", "username", "role", mode="before")
+    @classmethod
+    def sanitize_auth_fields(cls, value: Any, info: ValidationInfo) -> Any:
+        if value is None:
+            return value
+        if not isinstance(value, str):
+            return value
+        sanitized = sanitize_text(value).strip()
+        if info.field_name in {"email", "username"}:
+            sanitized = sanitized.lower()
+        return sanitized
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        if "@" not in value:
+            raise ValueError("Email must be valid.")
+        return value
+
+
+class LoginUser(BaseModel):
+    username: str = Field(min_length=3, max_length=40)
+    password: str = Field(min_length=8, max_length=128)
+    role: str | None = None
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def sanitize_username(cls, value: Any) -> Any:
+        if value is None:
+            return value
+        if not isinstance(value, str):
+            return value
+        return sanitize_text(value).strip().lower()
+
+    @field_validator("role")
+    @classmethod
+    def validate_login_role(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = sanitize_text(value).strip().lower()
+        if normalized not in {"manager", "analyst", "ceo"}:
+            raise ValueError("Role must be one of: manager, analyst, ceo")
+        return normalized
+
+
+class AuthResponse(BaseModel):
+    id: int
+    fullName: str
+    email: str
+    username: str
+    role: str
+    token: str
+
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok", "service": "flow-cast-api", "date": date.today().isoformat()}
@@ -135,6 +220,65 @@ def alerts():
 @app.get("/api/orders", response_model=list[PurchaseOrder])
 def orders():
     return get_orders()
+
+
+@app.post("/api/auth/register", response_model=dict, status_code=201)
+def register_user(payload: RegisterUser):
+    normalized_role = sanitize_text(payload.role).strip().lower()
+    if normalized_role not in {"manager", "analyst", "ceo"}:
+        raise HTTPException(status_code=400, detail="Role must be one of: manager, analyst, ceo")
+    if get_user_by_email(payload.email):
+        raise HTTPException(status_code=400, detail="An account with this email already exists.")
+    if get_user_by_username(payload.username):
+        raise HTTPException(status_code=400, detail="This username is already taken.")
+
+    user = create_user({
+        "fullName": payload.fullName,
+        "email": payload.email,
+        "username": payload.username,
+        "passwordHash": hash_password(payload.password),
+        "role": normalized_role,
+    })
+    return {
+        "id": user["id"],
+        "fullName": user["fullName"],
+        "email": user["email"],
+        "username": user["username"],
+        "role": user["role"],
+    }
+
+
+@app.post("/api/auth/login", response_model=AuthResponse)
+def login_user(payload: LoginUser):
+    user = get_user_by_username(payload.username)
+    if user is None or not verify_password(payload.password, user["passwordHash"]):
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+    if payload.role and payload.role != user["role"]:
+        raise HTTPException(status_code=401, detail="Selected role does not match this account.")
+
+    token = f"flowcast-{user['role']}-{user['id']}:{user['username']}"
+    return {
+        "id": user["id"],
+        "fullName": user["fullName"],
+        "email": user["email"],
+        "username": user["username"],
+        "role": user["role"],
+        "token": token,
+    }
+
+
+@app.post("/api/auth/profile")
+def get_profile(payload: LoginUser):
+    user = get_user_by_username(payload.username)
+    if user is None or not verify_password(payload.password, user["passwordHash"]):
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+    return {
+        "id": user["id"],
+        "fullName": user["fullName"],
+        "email": user["email"],
+        "username": user["username"],
+        "role": user["role"],
+    }
 
 
 @app.post("/api/orders", response_model=PurchaseOrder, status_code=201)

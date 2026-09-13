@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import sqlite3
@@ -47,6 +48,19 @@ def initialize_database() -> None:
                 delivery_date TEXT NOT NULL,
                 notes TEXT NOT NULL DEFAULT '',
                 status TEXT NOT NULL DEFAULT 'Pending',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('manager', 'analyst', 'ceo')),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -138,5 +152,70 @@ def order_from_row(row: sqlite3.Row) -> dict[str, Any]:
         "deliveryDate": row["delivery_date"],
         "notes": row["notes"],
         "status": row["status"],
+        "createdAt": row["created_at"],
+    }
+
+
+def hash_password(password: str) -> str:
+    salt = os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 200_000)
+    return salt.hex() + ":" + digest.hex()
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    try:
+        salt_hex, digest_hex = password_hash.split(":", 1)
+        salt = bytes.fromhex(salt_hex)
+        digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 200_000)
+        return digest.hex() == digest_hex
+    except (TypeError, ValueError):
+        return False
+
+
+def get_user_by_username(username: str) -> dict[str, Any] | None:
+    with get_connection() as connection:
+        row = connection.execute(
+            "SELECT * FROM users WHERE username = ?",
+            (username.lower(),),
+        ).fetchone()
+    return None if row is None else user_from_row(row)
+
+
+def get_user_by_email(email: str) -> dict[str, Any] | None:
+    with get_connection() as connection:
+        row = connection.execute(
+            "SELECT * FROM users WHERE email = ?",
+            (email.lower(),),
+        ).fetchone()
+    return None if row is None else user_from_row(row)
+
+
+def create_user(user: dict[str, Any]) -> dict[str, Any]:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO users (full_name, email, username, password_hash, role)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                user["fullName"],
+                user["email"].lower(),
+                user["username"].lower(),
+                user["passwordHash"],
+                user["role"],
+            ),
+        )
+        row = connection.execute("SELECT * FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    return user_from_row(row)
+
+
+def user_from_row(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "fullName": row["full_name"],
+        "email": row["email"],
+        "username": row["username"],
+        "role": row["role"],
+        "passwordHash": row["password_hash"],
         "createdAt": row["created_at"],
     }
