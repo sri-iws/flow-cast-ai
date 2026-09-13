@@ -4,6 +4,9 @@
     {
       "Sid": "ECRAndAppRunnerAccess",
       "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::811364788460:oidc-provider/token.actions.githubusercontent.com"
+      },
       "Action": [
         "ecr:GetAuthorizationToken",
         "ecr:DescribeRepositories",
@@ -18,8 +21,15 @@
         "apprunner:DescribeService",
         "apprunner:ListServices",
         "apprunner:DeleteService",
-        "sts:GetCallerIdentity"
+        "sts:GetCallerIdentity",
+        "sts:AssumeRoleWithWebIdentity"
       ],
+       "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:sri-iws/flow-cast-ai:ref:refs/heads/main"
+        }
+      },
       "Resource": "*"
     }
   ]
