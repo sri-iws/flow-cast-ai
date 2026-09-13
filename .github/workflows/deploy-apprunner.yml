@@ -26,8 +26,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::811364788460:role/GitHubActions-AppRunner-Deploy
-          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -82,7 +82,6 @@ jobs:
               --service-name "$APP_RUNNER_SERVICE_NAME" \
               --source-configuration "$SOURCE_CONFIG_JSON" \
               --instance-configuration '{"Cpu":"1024","Memory":"2048"}' \
-              --auto-deployments-enabled \
               --region "$AWS_REGION"
           else
             aws apprunner update-service \
