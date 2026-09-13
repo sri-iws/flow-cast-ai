@@ -5,7 +5,7 @@
       "Sid": "ECRAndAppRunnerAccess",
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:aws:iam::811364788460:oidc-provider/token.actions.githubusercontent.com"
+        "Federated": "arn:aws:iam::811364788460:role/github-actions-role"
       },
       "Action": [
         "ecr:GetAuthorizationToken",
