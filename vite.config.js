@@ -8,8 +8,5 @@ export default defineConfig({
     watch: {
       ignored: ['**/.venv/**']
     },
-    proxy: {
-      '/api': 'https://flow-cast-ai.onrender.com'
-    }
   }
 });

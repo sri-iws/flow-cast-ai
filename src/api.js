@@ -1,7 +1,7 @@
 import { products as fallbackProducts } from './data';
 
 const request = async (path, options = {}) => {
-  const response = await fetch(`/api${path}`, options);
+  const response = await fetch(`https://flow-cast-ai.onrender.com/api${path}`, options);
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json();
 };
