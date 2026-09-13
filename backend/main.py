@@ -11,12 +11,12 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from fastapi.staticfiles import StaticFiles
-from database import create_order, get_orders, get_products, initialize_database
+from backend.database import create_order, get_orders, get_products, initialize_database
 
 app = FastAPI(title="Flow Cast AI API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["https://flow-cast-ai.onrender.com", "http://flow-cast-ai.onrender.com"],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
 )
