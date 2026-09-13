@@ -16,7 +16,7 @@ from backend.database import create_order, get_orders, get_products, initialize_
 app = FastAPI(title="Flow Cast AI API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://flow-cast-ai.onrender.com", "http://flow-cast-ai.onrender.com"],
+    allow_origins=["https://main.du2fef2n0b3af.amplifyapp.com", "https://flow-cast-ai.onrender.com"],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
 )
