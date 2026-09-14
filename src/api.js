@@ -1,6 +1,6 @@
 import { products as fallbackProducts } from './data';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://flow-cast-ai.onrender.com';
 
 const request = async (path, options = {}) => {
   const response = await fetch(`${API_BASE}/api${path}`, options);
