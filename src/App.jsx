@@ -123,7 +123,7 @@ export default function App() {
     <main id="main-content" className="main-content" tabIndex="-1">
     <Topbar context={contexts[view]} user={session} onLogout={logout} onSearch={() => navigate('products')} onAlerts={() => navigate('alerts')} />
     {view === 'overview' && 
-    <Overview dashboard={{ ...dashboard, products: allProducts }} onNavigate={navigate} notify={notify} onReorder={setPurchaseProduct} onReview={product => { setReviewSku(product.sku); navigate('forecasts'); }} />}{view === 'products' && 
+    <Overview dashboard={{ ...dashboard, products: allProducts }} user={session} onNavigate={navigate} notify={notify} onReorder={setPurchaseProduct} onReview={product => { setReviewSku(product.sku); navigate('forecasts'); }} />}{view === 'products' && 
     <Products products={allProducts} notify={notify} onReorder={setPurchaseProduct} />}{view === 'forecasts' && <ForecastPortfolio products={allProducts} notify={notify} selectedSku={reviewSku} />}{view === 'alerts' && 
     <Alerts products={allProducts} notify={notify} onReorder={setPurchaseProduct} />}{view === 'orders' && <Orders orders={purchaseOrders} />}{view === 'data' && 
     <DataImport notify={notify} onUpload={upload} uploading={uploading} />}{view === 'settings' && 
