@@ -23,11 +23,64 @@ const downloadForecastCsv = product => {
 	URL.revokeObjectURL(url);
 };
 
+const downloadSalesCsvTemplate = notify => {
+	const rows = [
+		['date', 'product_id', 'units_sold', 'price', 'inventory_level', 'promotion'],
+		['2026-09-01', 'SKU-1001', '32', '24.99', '120', '1'],
+		['2026-09-02', 'SKU-1002', '18', '19.75', '87', '0'],
+	];
+	const csv = rows
+		.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(','))
+		.join('\n');
+	const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = 'sales-history-template.csv';
+	document.body.appendChild(link);
+	link.click();
+	link.remove();
+	URL.revokeObjectURL(url);
+	if (notify) notify('CSV template downloaded.');
+};
+
 export function Forecasts({ product, notify }) { return <section className="view active-view"><div className="page-heading compact"><div><p className="eyebrow">Prediction center</p><h1>Forecasts</h1><p className="lede">Model-backed demand projections, confidence, and drivers.</p></div><div className="date-select">Next <strong>30 days</strong>⌄</div></div><div className="forecast-detail-grid"><article className="panel forecast-summary"><div className="panel-header"><div><p className="eyebrow">Selected forecast</p><h2>{product.name}</h2><span className="subtle">{product.sku} · {product.category}</span></div><span className="confidence-badge">91% confidence</span></div><div className="big-forecast"><strong>{product.demand}</strong><span>units expected<br />next 30 days</span></div><div className="forecast-stats"><div><small>Trend</small><b className="green-text">↗ Increasing</b></div><div><small>Stockout probability</small><b className="coral-text">{product.risk}%</b></div><div><small>Primary driver</small><b>Promotion</b></div></div><div className="driver-bar"><span>Demand drivers</span><div><i style={{ width: '68%' }} /></div><b>Fall Essentials · 68%</b></div></article><article className="panel explain-panel"><div className="panel-header"><div><p className="eyebrow">Model explanation</p><h2>Why this forecast?</h2></div><span className="model-tag">LightGBM</span></div><div className="explanation-list">{[['Promotion uplift', 'Similar campaigns drove an average +22% sales lift.', CircleAlert, 'coral-bg'], ['Seasonality', 'Demand typically rises +14% in early fall.', RefreshCw, 'amber-bg'], ['Recent momentum', 'Sales velocity is up 8% over the last 7 days.', Info, 'blue-bg']].map(([title, copy, Icon, color]) => <div key={title}><span className={`explain-icon ${color}`}><Icon size={14} /></span><div><strong>{title}</strong><p>{copy}</p></div></div>)}</div></article></div><article className="panel forecast-table-panel"><div className="panel-header"><div><p className="eyebrow">Forecast horizon</p><h2>Daily demand projection</h2></div><button className="button secondary" onClick={() => { downloadForecastCsv(product); notify('Forecast CSV downloaded.'); }}><Download size={13} /> Download CSV</button></div><div className="horizon-bars"><div className="horizon-labels"><span>Sep 09</span><span>Sep 16</span><span>Sep 23</span><span>Oct 01</span></div><div className="bar-field">{[36, 43, 48, 53, 47, 62, 56, 70, 64, 76, 70, 84, 78, 92].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div></div></article></section>; }
 
 export function Alerts({ products, notify, onReorder }) { const alerts = products.filter(product => product.risk >= 60); return <section className="view active-view"><div className="page-heading compact"><div><p className="eyebrow">Needs attention</p><h1>Alerts</h1><p className="lede">Prioritized actions based on risk, velocity, and model confidence.</p></div><div className="alert-summary"><b>{alerts.length}</b> open alerts</div></div><div className="alert-list">{alerts.map((product, index) => <article className={`alert-card ${index === 0 ? 'critical-alert' : ''}`} key={product.sku}><div className="alert-symbol"><CircleAlert size={17} /></div><div className="alert-body"><div className="alert-title"><span className={`risk-pill ${product.risk > 80 ? 'high' : 'medium'}`}>{product.risk > 80 ? 'Critical risk' : 'Watch'}</span><small>{index ? '2 hours ago' : '12 minutes ago'}</small></div><h2>{product.name} may stock out in {product.daysLeft} days</h2><p>Current inventory of {product.stock} units is below projected 30-day demand of {product.demand} units. A reorder is recommended.</p><button className="button primary" onClick={() => onReorder(product)}>Create reorder</button></div><div className="alert-metric"><strong>{product.risk}%</strong><small>stockout probability</small></div></article>)}</div></section>; }
 
-export function DataImport({ notify, onUpload }) { const input = useRef(); return <section className="view active-view"><div className="page-heading compact"><div><p className="eyebrow">Data operations</p><h1>Import data</h1><p className="lede">Keep the forecast engine supplied with clean, current sales signals.</p></div></div><div className="data-grid"><article className="panel upload-panel"><div className="upload-illustration"><FileUp size={24} /></div><h2>Upload sales history</h2><p>Bring in daily sales, pricing, promotion, and inventory data as a CSV file.</p><input ref={input} id="csv-upload-input" type="file" accept=".csv" hidden aria-label="Upload sales history CSV" onChange={event => event.target.files[0] && onUpload(event.target.files[0])} /><button type="button" className="button primary" onClick={() => input.current.click()} aria-controls="csv-upload-input"><Upload size={14} /> Choose CSV file</button><small>Max 50 MB · UTF-8 CSV</small></article><article className="panel schema-panel"><div className="panel-header"><div><p className="eyebrow">Required fields</p><h2>Data schema</h2></div><span className="schema-ready"><CheckCircle2 size={12} /> Ready</span></div><div className="schema-list">{[['date', 'YYYY-MM-DD'], ['product_id', 'Unique SKU'], ['units_sold', 'Integer'], ['price', 'Decimal'], ['inventory_level', 'Integer'], ['promotion', '0 or 1']].map(([label, type]) => <span key={label}><b>{label}</b><small>{type}</small></span>)}</div><button type="button" className="text-button" onClick={() => notify('Under progress...')}>Download template →</button></article></div><article className="panel pipeline-panel"><div className="panel-header"><div><p className="eyebrow">Pipeline activity</p><h2>Latest data runs</h2></div><span className="subtle">Auto-refreshes daily</span></div>{['sales_september_08.csv', 'inventory_snapshot.csv'].map((file, index) => <div className="pipeline-row" key={file}><CheckCircle2 className="status-dot" size={14} /><div><strong>{file}</strong><small>12,440 rows · Validated and processed</small></div><b>Complete</b><time>{index ? 'Yesterday' : '8m ago'}</time></div>)}</article></section>; }
+export function DataImport({ notify, onUpload, uploading }) {
+	const input = useRef();
+	const [selectedFile, setSelectedFile] = useState(null);
+	const requiredFields = ['date', 'product_id', 'units_sold', 'price', 'inventory_level', 'promotion'];
+
+	const handleFileChange = async event => {
+		const file = event.target.files?.[0];
+		if (!file) return;
+		setSelectedFile(file);
+		if (!file.name.toLowerCase().endsWith('.csv')) {
+			notify('Please select a CSV file.');
+			return;
+		}
+		try {
+			const text = await file.slice(0, 2048).text();
+			const headerLine = text.split(/\r?\n/).find(line => line.trim());
+			if (!headerLine) {
+				notify('CSV file is empty or missing a header row.');
+				return;
+			}
+			const headers = headerLine.split(',').map(header => header.trim().replace(/^"|"$/g, '').toLowerCase());
+			const missingFields = requiredFields.filter(field => !headers.includes(field));
+			if (missingFields.length) {
+				notify(`CSV is missing required columns: ${missingFields.join(', ')}`);
+				return;
+			}
+		} catch (error) {
+			notify('This CSV could not be read. Please try another file.');
+			return;
+		}
+		onUpload(file);
+	};
+
+	return <section className="view active-view"><div className="page-heading compact"><div><p className="eyebrow">Data operations</p><h1>Import data</h1><p className="lede">Keep the forecast engine supplied with clean, current sales signals.</p></div></div><div className="data-grid"><article className="panel upload-panel"><div className="upload-illustration"><FileUp size={24} /></div><h2>Upload sales history</h2><p>Bring in daily sales, pricing, promotion, and inventory data as a CSV file.</p><input ref={input} id="csv-upload-input" type="file" accept=".csv" hidden aria-label="Upload sales history CSV" onChange={handleFileChange} /><button type="button" className="button primary" onClick={() => input.current.click()} aria-controls="csv-upload-input" disabled={uploading}><Upload size={14} /> {uploading ? 'Uploading…' : 'Choose CSV file'}</button>{selectedFile && <small>Selected file: {selectedFile.name}</small>}<small>Max 50 MB · UTF-8 CSV</small></article><article className="panel schema-panel"><div className="panel-header"><div><p className="eyebrow">Required fields</p><h2>Data schema</h2></div><span className="schema-ready"><CheckCircle2 size={12} /> Ready</span></div><div className="schema-list">{[['date', 'YYYY-MM-DD'], ['product_id', 'Unique SKU'], ['units_sold', 'Integer'], ['price', 'Decimal'], ['inventory_level', 'Integer'], ['promotion', '0 or 1']].map(([label, type]) => <span key={label}><b>{label}</b><small>{type}</small></span>)}</div><button type="button" className="text-button" onClick={() => downloadSalesCsvTemplate(notify)}>Download template →</button></article></div><article className="panel pipeline-panel"><div className="panel-header"><div><p className="eyebrow">Pipeline activity</p><h2>Latest data runs</h2></div><span className="subtle">Auto-refreshes daily</span></div>{['sales_september_08.csv', 'inventory_snapshot.csv'].map((file, index) => <div className="pipeline-row" key={file}><CheckCircle2 className="status-dot" size={14} /><div><strong>{file}</strong><small>12,440 rows · Validated and processed</small></div><b>Complete</b><time>{index ? 'Yesterday' : '8m ago'}</time></div>)}</article></section>; }
 
 export function Settings({ notify }) { return <section className="view active-view"><div className="page-heading compact"><div><p className="eyebrow">Workspace configuration</p><h1>Settings</h1><p className="lede">Tune how Flow Cast surfaces recommendations for your team.</p></div></div><div className="settings-grid"><article className="panel settings-panel"><p className="eyebrow">Forecast preferences</p><h2>Recommendation thresholds</h2><label>Stockout alert threshold<select><option>80% probability</option><option>70% probability</option></select></label><label>Default forecast horizon<select><option>30 days</option><option>14 days</option></select></label><label className="toggle-line"><span><strong>Include promotions</strong><small>Use promotion indicators in forecast explanations.</small></span><input type="checkbox" defaultChecked /><i /></label><label className="toggle-line"><span><strong>Daily email digest</strong><small>Send a summary of new critical alerts.</small></span><input type="checkbox" defaultChecked /><i /></label><button className="button primary" onClick={() => notify('Workspace settings saved.')}>Save changes</button></article><article className="panel settings-panel"><p className="eyebrow">Model information</p><h2>Forecast engine</h2><div className="model-info"><div><span>Model</span><b>LightGBM Global</b></div><div><span>Last trained</span><b>Sep 01, 2026</b></div><div><span>Baseline WAPE</span><b>24.8%</b></div><div><span>Current WAPE</span><b className="green-text">14.8%</b></div></div><div className="model-health"><ShieldCheck size={14} /><strong>Operating normally</strong><small>Next scheduled retraining: Oct 01</small></div></article></div></section>; }
 
