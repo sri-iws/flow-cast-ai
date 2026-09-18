@@ -4,7 +4,7 @@ import { loginUser, registerUser } from '../api';
 const roleOptions = [
   { value: 'manager', label: 'Manager' },
   { value: 'analyst', label: 'Analyst' },
-  { value: 'ceo', label: 'CEO' },
+  { value: 'ceo', label: 'Business Executives' },
 ];
 
 const defaultSignup = {
@@ -71,7 +71,7 @@ export default function AuthPage({ onAuthenticated }) {
             </div>
           </div>
           <h1>Access your inventory workspace</h1>
-          <p>Sign in with your role or create a new manager, analyst, or CEO account.</p>
+          <p>Sign in with your role or create a new manager, analyst, or business executive account.</p>
           <div className="role-pills" aria-label="Available roles">
             {roleOptions.map(option => {
               const isActive = mode === 'login' ? option.value === loginForm.role : option.value === signupForm.role;
